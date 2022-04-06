@@ -26,6 +26,17 @@ class UartDevice():
         self.logger.info(msg)
         return True
 
+    def in_waiting(self):
+        if self.serial_port:
+            return self.serial_port.in_waiting
+        return -1
+
+    def read(self):
+        data = self.serial_port.read(self.serial_port.in_waiting)
+        return data
+    def write(self, data):
+        self.serial_port.write(data)
+
     def close(self):
         self.serial_port.close()
         self.logger.info(f'serial {self.serial_port} closed.')

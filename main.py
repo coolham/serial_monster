@@ -13,6 +13,7 @@ from threading import Thread
 from designer.w_main import Ui_MainWindow
 from forms.setup_form import SetupForm
 from forms.data_form import DataForm
+from forms.battery_form import BatteryForm
 from utils.set_log import setup_logging
 
 
@@ -21,9 +22,10 @@ from utils.set_log import setup_logging
 HIDE_SETUP_TAB = True
 
 status_queue = Queue(maxsize=100)
+uart_data_queue = Queue(maxsize=100)
 global_var.init()
 global_var.set_value('status_queue', status_queue)
-
+global_var.set_value('uart_data_queue', uart_data_queue)
 
 
 class MyMainForm(QMainWindow, Ui_MainWindow):
@@ -55,8 +57,9 @@ class MyMainForm(QMainWindow, Ui_MainWindow):
             self.tabWidget.removeTab(1)
 
     def init_data_tab(self):
-        self.data_form = DataForm()
-        self.data_vLayout.addWidget(self.data_form)
+        #self.data_form = DataForm()
+        self.battery_form = BatteryForm()
+        self.data_vLayout.addWidget(self.battery_form)
 
     def init_setup_tab(self):
         self.setup_form = SetupForm()
@@ -71,11 +74,14 @@ class MyMainForm(QMainWindow, Ui_MainWindow):
             msg = status_queue.get()
             self.statusBar().showMessage(msg, msecs=5000)
             time.sleep(0.1)
+        print(f'show_status_thread exit.')
 
     def release_resource(self):
-        print("release_resource")
+        self.battery_form.release_resource()
         self.__exit_flag = True
         self.status_thread.join()
+        print("release_resource finished.")
+
 
     def closeEvent(self, event):
         result = QMessageBox.question(self, "提示", "确认是否退出?",
