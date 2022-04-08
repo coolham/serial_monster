@@ -16,10 +16,13 @@ import global_var
 from uart_data.uart_device import UartDevice
 
 
+
 class BatteryForm(QWidget, Ui_BatteryForm):
     """
     Class documentation goes here.
     """
+
+    _signal = pyqtSignal(list)
 
     def __init__(self, parent=None, top_window=None):
         """
@@ -42,6 +45,7 @@ class BatteryForm(QWidget, Ui_BatteryForm):
         self.uart_device = UartDevice()
         self.init_view()
         self.data_thread = Thread(name='data_thread', target=self.recv_data_thread)
+        self._signal.connect(self.refresh_battery)
         self.data_thread.start()
 
     def init_view(self):
@@ -92,7 +96,8 @@ class BatteryForm(QWidget, Ui_BatteryForm):
             self.logger.info(msg)
             self.status_queue.put(msg)
 
-    def update_battery(self, values):
+    def refresh_battery(self, values):
+        print(f'update battery:{values}')
         for data_dict in values:
             if 'BAT1' in data_dict:
                 self.pbBat1.setValue(data_dict['BAT1'])
@@ -123,16 +128,31 @@ class BatteryForm(QWidget, Ui_BatteryForm):
                 d_list = data_s.split('\n')
                 values = []
                 for item in d_list:
-                    if item:
-                        one_v = {}
-                        kvs = item[5:].split('=')
-                        one_v[kvs[0]] = int(kvs[1])
-                        values.append(one_v)
+                    r_dict = self.parse_data(item)
+                    if r_dict:
+                        values.append(r_dict)
+
                 print(f'values: {values}')
                 if len(values) > 0:
-                    self.update_battery(values)
+                    self._signal.emit(values)
             time.sleep(0.1)
         print(f'recv_data_thread exit.')
+
+    def parse_data(self, data_str):
+        one_v = {}
+        if data_str == '':
+            return None
+        try:
+            kvs = data_str[5:].split('=')
+            v = eval(kvs[1])
+            if isinstance(v, float):
+                v1 = round(v)
+            else:
+                v1 = v
+            one_v[kvs[0]] = v1
+        except Exception as e:
+            print(f'parse_data error: {data_str}, e={e}')
+        return one_v
 
     def send_status_msg(self, msg):
         self.status_queue.put(msg)

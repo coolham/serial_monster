@@ -32,8 +32,12 @@ class UartDevice():
         return -1
 
     def read(self):
-        data = self.serial_port.read(self.serial_port.in_waiting)
+        try:
+            data = self.serial_port.read(self.serial_port.in_waiting)
+        except Exception as e:
+            print(f'uart read error:{e}')
         return data
+
     def write(self, data):
         self.serial_port.write(data)
 
